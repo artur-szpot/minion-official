@@ -1,0 +1,438 @@
+// =====================================================================================================
+// #region variables
+
+$terminal-final-padding: 75px;
+$terminal-font-size: 1.2rem;
+
+$color-partial-tag: #AAA;
+$color-minibutton-delete: red;
+$color-minibutton-filter: pink;
+$color-minibutton-equalize: greenyellow;
+$color-minibutton-add: skyblue;
+$color-minibutton-edit: yellow;
+
+$color-syntax-command: #FFAA00;
+$color-syntax-tag :rgb(138, 203, 240); 
+$color-syntax-alias : rgb(245, 239, 163); 
+$color-syntax-number : rgb(177, 255, 113); 
+$color-syntax-category : rgb(145, 245, 145); 
+$color-syntax-type : rgb(252, 243, 164); 
+$color-syntax-error: rgb(255, 101, 101); 
+$color-syntax-filter_condition : rgb(119, 144, 163); 
+$color-syntax-special : pink;
+
+// #endregion
+// =====================================================================================================
+// #region general
+
+body {
+  background-color: #666;
+  color: #ddd;
+  margin: 0;
+  font-family: Arial;
+}
+
+::selection {
+  color: #0099FF;
+  background: #0099FF;
+}
+
+button:focus { outline: none; }
+
+.container {
+  padding: 0;
+  height: 100vh;
+  width: 100vw;
+}
+
+.executable {
+  cursor: pointer;
+  &:hover { color: rgb(233, 186, 247); }
+}
+
+// #endregion
+// =====================================================================================================
+// #region lists
+
+ul {
+  padding-left: 20px;
+  & li {
+    list-style: none;
+    cursor: default;
+
+    // make the list's first item its header
+    &:first-child {
+      margin-left: -10px;
+      font-size: 1.3rem;
+      font-weight: bold;
+      margin-bottom: 2px;
+      &::first-letter{ text-transform: uppercase; }
+    }
+
+    // style correctly items with special content, including action buttons
+    &.partial { color: $color-partial-tag; }
+    & > button {
+      background-color: transparent;
+      border: none;
+      color: white;
+      float: right;
+      cursor: pointer;
+      &:first-of-type { margin-right: 10px; }
+      &.big{ margin-top: 4px; }
+      &.delete:hover{ color: $color-minibutton-delete; }
+      &.filter:hover{ color: $color-minibutton-filter; }
+      &.equalize:hover{ color: $color-minibutton-equalize; }
+      &.add:hover{ color: $color-minibutton-add; }
+      &.edit:hover{ color: $color-minibutton-edit; }
+    }
+
+    // for when categories have sub-categories: format the sub-category header with small capitals
+    & ul {
+      margin-left: -10px;
+      margin-bottom: 10px;
+      & > li:first-child { 
+        text-transform: uppercase;
+        font-size: 70%;
+        font-weight: bold;
+        margin-top: 2px;
+        margin-bottom: 2px;
+        color: #DDD;
+      }
+    }
+  }
+}
+
+// #endregion
+// =====================================================================================================
+// #region the main display panel
+
+.mainPanel {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  overflow-y: scroll;
+  
+  // all images should have an appropriate border
+  & img { border: 2px solid black; }
+
+  // for hardcore debugging
+  & textarea {
+    width: 100%;
+    height: 75%;
+  }
+
+  & .paddedInside {
+    margin-right: 330px;
+    height: 75%;
+
+    // if a single image is displayed, make it presentable
+    & > img {
+      width: auto;
+      max-width: 95%;
+      max-height: 95%;
+      margin: auto;
+      position: relative;
+      top: 50%;
+      transform: translateY(-50%);
+      display: block;
+    }
+
+    // a collection of images will behave differently
+    & > div {
+      display: inline-block;
+      padding: 10px;
+
+      // display image's id for ease of command writing
+      & > p.id { 
+        margin: 3px;
+        position: absolute;
+        padding: 3px 6px;
+        background-color: black;
+        border: 1px solid white;
+        color: white;
+      }
+
+      // display the image itself
+      & > img { width: 100%; }
+      &.selected > img { box-shadow: 0 0 0 2px #FFAA00, 0 0 0 4px black; }
+
+      // the panel may also display textual information
+      &.textPanel {
+        display: block;
+        text-align: left;
+        width: 100%;
+        color: white;
+        overflow-y: scroll;
+        max-height: 100%;
+
+        // or a list of items
+        & li { 
+          padding: 4px;
+          margin-right: 1 0px;
+
+          // striped background for increased readability
+          &:not(.ul):nth-child(even){ background-color: rgba(0, 0, 0, 0.1); }
+
+          // information inside list items is displayed in spans
+          & span { 
+            display: inline-block;
+            min-width: 60px;
+            text-align: center;
+
+            &.bar {
+              background-color: #3323;
+              &.outer {
+                vertical-align: bottom;
+                margin-left: 20px;
+                width: 300px;
+                height: 12px;
+                border: 2px solid black;
+                text-align: left;
+                &.inactive {
+                  background: none;
+                  border-color: #999;
+                }
+              }
+              &.inner {
+                max-width: 300px;
+                min-width: 0;
+                vertical-align: top;
+                height: 100%;
+                &.wip { background-color: #FF9900; }
+                &.done { background-color: green; width: 100%; }
+              }
+            }
+
+            // first span is width-limited against too-long values
+            &:first-of-type { 
+              text-align: left;
+              max-width: 250px;
+              width: 100%;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+
+            // headers of subcategories
+            &.header {
+              color: #CCC;
+              &:first-of-type{ margin-right: 16px; }
+            }
+
+            // highlight important values
+            &.good {
+              color: green;
+              font-weight: bold;
+            }
+            &.bad {
+              color: rgb(250, 108, 57);
+              font-weight: bold;
+            }
+            &.high {
+              color: #FFCC00;
+              font-weight: bold;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// #endregion
+// =====================================================================================================
+// #region info panel
+
+.info {
+  width: 300px;
+  height: 100%;
+  max-height: 100%;
+  position: fixed;
+  overflow-y: scroll;
+  right: 33px;
+  top: 0;
+  vertical-align: top;
+  background-color: black;
+  color: white;
+  text-align: left;
+  z-index: 5;
+  display: inline-block;
+  padding: 10px;
+
+  // as usual, contents ordered by lists
+  & ul li:not(:first-child){
+
+    // highlightable list items even when unactionable ensure clarity when pressing buttons
+    border: 1px dotted black;
+    &:hover {
+      border: 1px dotted #999;
+      background-color: #333;
+    }
+
+    // content ordered, as usual, in spans
+    & > span {
+      display: inline-block;
+      margin: -2px 3px;
+      text-align: left;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      &:last-of-type {
+        max-width: 130px;
+        width: 100%;
+      }
+    }
+  }
+
+  // first bit of information at the top
+  & > p {
+    margin: 5px 0;
+    font-size: 80%;
+    text-transform: uppercase;
+  }
+}
+
+// #endregion
+// =====================================================================================================
+// #region the buttons panel
+
+.buttons {
+  position: fixed;
+  right: 0;
+  top: 0;
+  background: black;
+  height: 100%;
+  width: 50px;
+  z-index: 10;
+  & button {
+    display: block;
+    margin: 5px auto;
+    border: 2px solid black;
+    border-radius: 20px;
+    width: 40px;
+    height: 40px;
+    font-size: 130%;
+    background-color: rgb(215, 255, 155);
+    &.high {
+       background-color: rgb(171, 116, 223);
+       color: black;
+      }
+    &:not(:disabled){
+      color: black;
+      cursor: pointer;
+      &:hover { 
+        background-color: rgb(46, 77, 0);
+        &.high { background-color: rgb(133, 44, 216);}
+        color: white;
+        border-color: white;
+      }
+    }
+  }
+}
+
+// #endregion
+// =====================================================================================================
+// #region terminal
+
+.terminal {
+  background-color: #333;
+  color: black;
+  margin: 0;
+  height: 25%;
+  overflow-y: scroll;
+  vertical-align: bottom;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  font-size: $terminal-font-size;
+
+  & .paddedInside {
+    margin-right: 350px;
+    margin-top: 5px;
+
+  // bumper at the bottom to allow autoscrolling of the terminal
+  & > p {
+    margin: 0;
+    padding-bottom: $terminal-final-padding;
+  }
+
+  // the main entry point for all commands
+  & > input {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    font-size: $terminal-font-size;
+    padding: 5px;
+    border: none;
+    font-family: monospace;
+    color: black;
+    background-color: black;
+    caret-color: white;
+    &:focus { outline: none; }
+    &.tag { 
+      border-top: 2px solid $color-syntax-tag;
+      border-bottom: 5px solid $color-syntax-tag;
+    }
+    &.command {
+       border-top: 2px solid $color-syntax-command;
+       border-bottom: 4px solid $color-syntax-command;
+      }
+  }
+
+  // to enable syntax highlighting, the input is actually displayed on an overlying div
+  & > div {
+    font-family: monospace;
+    padding-left: 5px;
+    margin-bottom: 1px;
+
+    @mixin syntax-colors() {
+      font-weight: 900;
+      &.none { font-weight: normal; }
+      &.ninja { visibility: hidden; }
+      &.command {color: $color-syntax-command; }
+      &.tag { color: $color-syntax-tag; }
+      &.alias { color: $color-syntax-alias; }
+      &.number { color: $color-syntax-number;}
+      &.category { color:$color-syntax-category;}
+      &.type { color: $color-syntax-type;}
+      &.error { color: $color-syntax-error; font-style: italic; }
+      &.filter_condition { color: $color-syntax-filter_condition;}
+      &.special { color:$color-syntax-special;}
+    }
+
+    // over input, there are spans directly in the div
+    & > span {
+      display: inline-block;
+      color: #CCC;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 90%;
+      margin: -2px 0;
+      @include syntax-colors();
+      &.input { max-width: 100%; }
+    }
+
+    // in terminal history, they are additionally wrapped in divs
+    &.command {
+      & > span { 
+        color: white;
+        @include syntax-colors(); 
+      }
+    }
+
+    // the div over input needs to be positioned correctly
+    &.input {
+      position: fixed;
+      bottom: 5px;
+      left: 5px;
+      padding-left: 0;
+    }
+  }
+  }
+}
+
+// #endregion
+// =====================================================================================================

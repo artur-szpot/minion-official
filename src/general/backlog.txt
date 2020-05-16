@@ -1,0 +1,2 @@
+Potential future epic: expand this to a robust application basis all its own.
+Currently this only serves to show off the basic structure of the true project.
